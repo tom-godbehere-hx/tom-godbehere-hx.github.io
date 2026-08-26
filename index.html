@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Triage Coin Drop</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* The page follows the viewer's theme. The cabinet does not: it is a physical
+     object, always dark metal, so the Miro pastels read as lit plastic on it.
+     Lane colours, sticky-note pink and yellow and the flat black outlines all
+     carry over from the board. */
+  :root{
+    --bg:#e8ebf0;
+    --panel:#ffffff;
+    --ink:#12161d;
+    --muted:#5d6674;
+    --line:#c9cfd9;
+    --field:#f3f5f8;
+    --alert:#c01639;
+    --alert-bg:rgba(192,22,57,.09);
+    --shadow:rgba(18,22,29,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f131a;
+      --panel:#171c25;
+      --ink:#e9edf3;
+      --muted:#98a3b3;
+      --line:#2c3441;
+      --field:#11161d;
+      --alert:#ff8d9f;
+      --alert-bg:rgba(255,141,159,.12);
+      --shadow:rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f131a;
+    --panel:#171c25;
+    --ink:#e9edf3;
+    --muted:#98a3b3;
+    --line:#2c3441;
+    --field:#11161d;
+    --alert:#ff8d9f;
+    --alert-bg:rgba(255,141,159,.12);
+    --shadow:rgba(0,0,0,.55);
+  }
+
+  /* Machine constants, theme independent. */
+  :root{
+    --lane-email:#a6c4ee;
+    --lane-manual:#59bbb7;
+    --lane-api:#49deff;
+    --customer:#ffb3c3;
+    --internal:#ffdc4a;
+    --steel-hi:#5b6779;
+    --steel:#333c4a;
+    --steel-lo:#1b212b;
+    --cab-edge:#0a0d12;
+    --glassdark:#10151d;
+    --coin-hi:#fff0bd;
+    --coin:#f0bc44;
+    --coin-lo:#a97f14;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font:16px/1.5 Archivo,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1300px;margin:0 auto;padding:20px 20px 30px}
+  .sub{color:var(--muted);font-size:14.5px;margin:0 0 18px;max-width:74ch}
+  .sub b{font-weight:600;color:var(--ink)}
+
+  .cols{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .left{flex:1 1 560px;min-width:330px}
+  .right{flex:1 1 400px;min-width:310px;display:flex;flex-direction:column;gap:14px}
+
+  /* ---------- Cabinet ---------- */
+  /* Starburst sticker slapped on the top corner, like a special offer flash. */
+  .sticker{
+    position:absolute;top:-20px;right:-16px;width:152px;height:152px;
+    transform:rotate(-13deg);z-index:9;pointer-events:none;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+  }
+  .sticker .burst,.sticker .burst-edge{
+    position:absolute;inset:0;
+    clip-path:polygon(50.0% 0.0%,59.6% 14.3%,75.0% 6.7%,76.2% 23.8%,93.3% 25.0%,85.7% 40.4%,100.0% 50.0%,85.7% 59.6%,93.3% 75.0%,76.2% 76.2%,75.0% 93.3%,59.6% 85.7%,50.0% 100.0%,40.4% 85.7%,25.0% 93.3%,23.8% 76.2%,6.7% 75.0%,14.3% 59.6%,0.0% 50.0%,14.3% 40.4%,6.7% 25.0%,23.8% 23.8%,25.0% 6.7%,40.4% 14.3%);
+  }
+  .sticker .burst-edge{background:var(--cab-edge)}
+  .sticker .burst{inset:4px;background:linear-gradient(160deg,#ef5c7c,#dd2a51 60%,#b81339)}
+  .sticker .flash{
+    position:absolute;inset:22%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:4px;text-align:center;
+  }
+  /* Outlined rather than plain white: the pink is dark enough to swallow thin type. */
+  .sticker .flash .big{
+    font-family:"Archivo Black",Archivo,Helvetica,sans-serif;
+    font-size:12.5px;line-height:1.15;color:#fff;letter-spacing:.01em;
+    text-shadow:
+      -1.5px -1.5px 0 #0a0d12, 0 -1.5px 0 #0a0d12, 1.5px -1.5px 0 #0a0d12,
+      1.5px 0 0 #0a0d12, 1.5px 1.5px 0 #0a0d12, 0 1.5px 0 #0a0d12,
+      -1.5px 1.5px 0 #0a0d12, -1.5px 0 0 #0a0d12,
+      0 2px 4px rgba(0,0,0,.5);
+  }
+  .sticker .flash .small{
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:8.5px;font-weight:600;line-height:1.3;letter-spacing:.03em;color:#fff;
+    text-shadow:
+      -1px -1px 0 #0a0d12, 0 -1px 0 #0a0d12, 1px -1px 0 #0a0d12,
+      1px 0 0 #0a0d12, 1px 1px 0 #0a0d12, 0 1px 0 #0a0d12,
+      -1px 1px 0 #0a0d12, -1px 0 0 #0a0d12;
+  }
+  @media (max-width:560px){
+    .sticker{width:112px;height:112px;top:-14px;right:-10px}
+    .sticker .flash .big{font-size:10px}
+    .sticker .flash .small{font-size:7px}
+  }
+
+  .cabinet{
+    position:relative;
+    background:linear-gradient(180deg,var(--steel-hi) 0%,var(--steel) 16%,var(--steel-lo) 100%);
+    border:3px solid var(--cab-edge);
+    border-radius:22px 22px 12px 12px;
+    padding:14px;
+    box-shadow:0 20px 44px var(--shadow), inset 0 2px 0 rgba(255,255,255,.16);
+  }
+
+  .marquee{
+    position:relative;
+    background:linear-gradient(180deg,#ffe680,#ffc93c 55%,#f0a92a);
+    border:2px solid var(--cab-edge);
+    border-radius:12px;
+    padding:12px 18px 13px;
+    margin-bottom:13px;
+    text-align:center;
+    box-shadow:0 0 26px rgba(255,201,60,.34), inset 0 -3px 0 rgba(0,0,0,.16);
+  }
+  /* Bulb strips along the top and bottom of the marquee. */
+  .marquee::before,.marquee::after{
+    content:"";position:absolute;left:12px;right:12px;height:6px;
+    background-image:radial-gradient(circle, #fffbe8 0 42%, rgba(255,255,255,0) 46%);
+    background-size:17px 6px;background-repeat:repeat-x;
+    opacity:.85;
+  }
+  .marquee::before{top:4px}
+  .marquee::after{bottom:4px}
+  .marquee h1{
+    font-family:"Archivo Black",Archivo,Helvetica,sans-serif;
+    font-size:clamp(20px,2.8vw,32px);
+    letter-spacing:.06em;text-transform:uppercase;color:#20160a;margin:0;
+    text-shadow:0 2px 0 rgba(255,255,255,.45);
+  }
+  .marquee .tag{
+    display:block;margin-top:3px;
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#5c4410;
+  }
+
+  /* ---------- Coin slots ---------- */
+  .rail{display:flex;gap:12px;margin-bottom:13px}
+  .slot{
+    flex:1;cursor:pointer;font:inherit;padding:9px 8px 11px;
+    border:2px solid var(--cab-edge);border-radius:10px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0) 55%),var(--slotcol,#999);
+    box-shadow:0 4px 0 var(--cab-edge),0 8px 14px rgba(0,0,0,.35);
+    transition:transform .1s ease,box-shadow .1s ease,filter .2s ease;
+  }
+  .slot[data-lane="email"]{--slotcol:var(--lane-email)}
+  .slot[data-lane="manual"]{--slotcol:var(--lane-manual)}
+  .slot[data-lane="api"]{--slotcol:var(--lane-api)}
+  .slot .mouth{
+    width:46px;height:11px;border-radius:6px;
+    background:#0b0e13;
+    box-shadow:inset 0 2px 3px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.5);
+  }
+  .slot .name{
+    font-weight:700;font-size:15px;color:#101720;letter-spacing:.01em;
+  }
+  .slot .hint{
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(16,23,32,.62);
+  }
+  .slot:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 0 var(--cab-edge),0 12px 18px rgba(0,0,0,.4)}
+  .slot:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--cab-edge),0 3px 7px rgba(0,0,0,.35)}
+  .slot:focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .slot:disabled{cursor:default;filter:saturate(.22) brightness(.72);box-shadow:inset 0 3px 6px rgba(0,0,0,.5)}
+
+  /* ---------- Playfield ---------- */
+  .machine{
+    position:relative;
+    height:clamp(340px,54vh,500px);
+    background:
+      radial-gradient(120% 80% at 50% 0%,#232c3a 0%,var(--glassdark) 68%),
+      var(--glassdark);
+    border:2px solid var(--cab-edge);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .lane{position:absolute;top:0;bottom:14%;opacity:.16;transition:opacity .3s ease}
+  .lane[data-lane="email"]{background:var(--lane-email)}
+  .lane[data-lane="manual"]{background:var(--lane-manual)}
+  .lane[data-lane="api"]{background:var(--lane-api)}
+  .lane.armed{opacity:.34}
+  /* Metal posts dividing the lanes. */
+  .post{
+    position:absolute;top:0;bottom:14%;width:5px;transform:translateX(-50%);
+    background:linear-gradient(90deg,#0d1118,#4d576a 45%,#0d1118);
+    opacity:.85;
+  }
+
+  .bar{
+    position:absolute;
+    border:2px solid var(--cab-edge);border-bottom-width:5px;border-radius:5px;
+    display:flex;align-items:center;gap:10px;padding:0 12px;
+    font-size:14px;font-weight:600;color:#12161d;
+    box-shadow:0 3px 9px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.5);
+    transition:transform .1s ease,box-shadow .1s ease;
+  }
+  .bar.customer{background:var(--customer)}
+  .bar.internal{background:var(--internal)}
+  .bar .who{
+    margin-left:auto;font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:10.5px;font-weight:600;letter-spacing:.12em;opacity:.58;
+  }
+  /* A single-lane bar gets a third of the width, so the word tag becomes a dot. */
+  .bar.narrow{font-size:12px;line-height:1.15;padding:0 9px;gap:7px}
+  .bar.narrow .who{
+    flex:0 0 auto;width:9px;height:9px;border-radius:50%;
+    border:1.5px solid var(--cab-edge);opacity:.45;
+  }
+  .bar.collected{box-shadow:inset 0 0 0 3px var(--cab-edge),0 0 20px rgba(255,255,255,.28)}
+  .bar.hit{
+    transform:translateY(4px);
+    box-shadow:inset 0 0 0 3px var(--cab-edge),0 0 30px rgba(255,255,255,.75);
+    animation:knock .22s ease;
+  }
+  @keyframes knock{
+    0%{transform:translateY(0)}
+    35%{transform:translateY(5px) scaleY(.9)}
+    100%{transform:translateY(4px)}
+  }
+
+  .lanelabel{
+    position:absolute;top:80%;transform:translateX(-50%);
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    color:#8e9cb2;
+  }
+
+  /* Payout chute across the bottom. */
+  .tray{
+    position:absolute;left:0;right:0;bottom:0;height:14%;
+    background:linear-gradient(180deg,#070a0e,#161d27);
+    border-top:3px solid #4d576a;
+    box-shadow:inset 0 12px 18px rgba(0,0,0,.85);
+  }
+
+  .coin{
+    position:absolute;transform:translate(-50%,-50%);
+    transition:top .42s cubic-bezier(.45,0,.7,1);
+    z-index:6;
+  }
+  .coin-face{
+    width:30px;height:30px;border-radius:50%;
+    background:
+      radial-gradient(circle at 34% 28%,var(--coin-hi) 0 22%,var(--coin) 58%,var(--coin-lo) 100%);
+    border:2px solid var(--coin-lo);
+    box-shadow:0 3px 8px rgba(0,0,0,.6), inset 0 0 0 3px rgba(255,255,255,.22);
+  }
+  .coin.falling .coin-face{animation:spin 1s linear infinite}
+  .coin.impact .coin-face{animation:squash .2s ease}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes squash{
+    0%{transform:scale(1,1)}
+    40%{transform:scale(1.2,.78)}
+    100%{transform:scale(1,1)}
+  }
+
+  /* Glass front, drawn over everything inside the machine. */
+  .glass{
+    position:absolute;inset:0;pointer-events:none;z-index:8;
+    background:linear-gradient(112deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.05) 26%,rgba(255,255,255,0) 42%);
+    box-shadow:inset 0 0 46px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.14);
+  }
+
+  /* ---------- Plinth under the glass ---------- */
+  .plinth{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    margin-top:12px;padding:9px 12px;
+    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.09);border-radius:9px;
+  }
+  .legend{
+    display:flex;gap:16px;flex-wrap:wrap;
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-size:11px;color:#aab6c6;
+  }
+  .legend b{display:inline-block;width:12px;height:12px;border:1.5px solid var(--cab-edge);border-radius:2px;vertical-align:-2px;margin-right:7px}
+  .readout{
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:11.5px;letter-spacing:.05em;color:#ffd75e;min-height:16px;
+  }
+  /* Mounted on the front of the machine, in the empty space under the Manual
+     lane where the two email-only bars do not reach. Always in view, even when
+     an embed crops everything below the cabinet. */
+  button.reset{
+    position:absolute;left:50%;top:68%;transform:translateX(-50%);z-index:9;
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+    color:#e6ecf4;white-space:nowrap;cursor:pointer;
+    padding:9px 15px;border-radius:8px;border:2px solid var(--cab-edge);
+    background:linear-gradient(180deg,#5b6779,#2b3441);
+    box-shadow:0 3px 0 var(--cab-edge),0 7px 13px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.28);
+    transition:transform .1s ease,box-shadow .1s ease;
+  }
+  button.reset:hover{background:linear-gradient(180deg,#6b7889,#333d4c)}
+  button.reset:active{
+    transform:translateX(-50%) translateY(3px);
+    box-shadow:0 0 0 var(--cab-edge),0 3px 7px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  button.reset:focus-visible{outline:3px solid #fff;outline-offset:3px}
+
+  /* ---------- Output side ---------- */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px}
+  .panel h2{
+    font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+    margin:0 0 11px;font-weight:500;
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:7px;min-height:28px}
+  .chip{border:1.5px solid var(--cab-edge);border-radius:20px;padding:3px 11px;font-size:12.5px;font-weight:500;color:#12161d}
+  .chip.customer{background:var(--customer)}
+  .chip.internal{background:var(--internal)}
+  .empty{color:var(--muted);font-size:13px}
+
+  .tabs{display:flex;gap:6px;margin-bottom:11px}
+  .tab{
+    font:inherit;font-size:13px;font-weight:600;padding:6px 13px;cursor:pointer;
+    border:1.5px solid var(--line);border-radius:7px;background:transparent;color:var(--muted);
+  }
+  .tab[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+  .tab:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  /* The output is a block rather than a textarea so the PjM placeholders can be
+     shown in red. It stays editable and selectable. */
+  .out{
+    width:100%;height:300px;overflow:auto;resize:vertical;display:block;
+    margin:0;white-space:pre-wrap;word-break:break-word;
+    font:12.5px/1.6 "IBM Plex Mono",ui-monospace,Consolas,monospace;
+    background:var(--field);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:11px;
+  }
+  .out:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+  .ph{
+    color:var(--alert);font-weight:600;
+    background:var(--alert-bg);border-radius:3px;padding:1px 3px;
+  }
+  .hidden{display:none}
+
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  button.act{
+    font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:7px;
+    border:1.5px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;
+  }
+  button.act:hover{border-color:var(--ink)}
+  button.act:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .note{font-size:12px;color:var(--muted)}
+  .source{font-size:11.5px;color:var(--muted);margin-top:12px}
+  .source a{color:inherit}
+
+  @media (prefers-reduced-motion: reduce){
+    .coin{transition-duration:.01ms !important}
+    .coin.falling .coin-face,.coin.impact .coin-face{animation:none}
+    .bar.hit{animation:none}
+    .slot,.bar{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="sub">Drop a coin into the slot for each upload flow your customer needs, <b>more than one is fine</b>. It lands on every technical pre-req that flow carries, then writes the customer email and the PjM checklist.</p>
+
+  <div class="cols">
+    <div class="left">
+      <div class="cabinet">
+        <div class="sticker">
+          <div class="burst-edge"></div>
+          <div class="burst"></div>
+          <div class="flash">
+            <span class="big">Dropzone 3 please Ben</span>
+            <span class="small">+1 if you know the reference</span>
+          </div>
+        </div>
+        <div class="marquee">
+          <h1>The coin slot game</h1>
+          <span class="tag">Triage upload flows</span>
+        </div>
+        <div class="rail" id="slots"></div>
+        <div class="machine" id="machine">
+          <div class="glass"></div>
+          <button class="reset" type="button" id="reset">Clear the machine</button>
+        </div>
+        <div class="plinth">
+          <div class="legend">
+            <span><b style="background:#ffb3c3"></b>we need the customer's input first</span>
+            <span><b style="background:#ffdc4a"></b>we do this our side</span>
+          </div>
+          <div class="readout" id="status"></div>
+        </div>
+      </div>
+      <p class="source">Anything in red is a placeholder for the PjM to fill in before the email is sent. The standard nodes and API endpoints sections are drafted here and are not yet in the source template. All copy is a draft pending PjM review.</p>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <h2>Requirements hit</h2>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="panel">
+        <div class="tabs" role="tablist">
+          <button class="tab" type="button" role="tab" id="tab-email" aria-selected="true" aria-controls="out-email">Customer email</button>
+          <button class="tab" type="button" role="tab" id="tab-check" aria-selected="false" aria-controls="out-check">PjM checklist</button>
+        </div>
+        <pre class="out" id="out-email" role="tabpanel" aria-labelledby="tab-email" contenteditable="true" spellcheck="false" aria-label="Customer email draft"></pre>
+        <pre class="out hidden" id="out-check" role="tabpanel" aria-labelledby="tab-check" contenteditable="true" spellcheck="false" aria-label="PjM checklist"></pre>
+        <div class="row">
+          <button class="act" id="copy">Copy</button>
+          <span class="note" id="copyStatus"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var LANES = [
+    {id:'email',  name:'Email'},
+    {id:'manual', name:'Manual'},
+    {id:'api',    name:'API'}
+  ];
+
+  /* Placeholders the PjM must fill in are wrapped in a marker character, which
+     never reaches the DOM: renderOut splits on it and paints those runs red. */
+  var MARK = String.fromCharCode(1);
+  function PH(text){ return MARK + text + MARK; }
+
+  /* Top to bottom, matching the vertical order of the bars on the Miro board.
+     email.sections  -> numbered asks in the customer email
+     email.note      -> a heads-up in the email, not an ask
+     null email      -> never mentioned to the customer (Open AI secrets)
+     check           -> always tracked by the PjM */
+  var BARS = [
+    {
+      id:'api-endpoints', label:'API endpoints discussion', lanes:['api'], type:'customer',
+      email:{sections:[{
+        heading:'API endpoints',
+        body:[
+          'You are planning to submit through the API, so we need a short session between your technical team and ours before the kickoff.',
+          'We will use it to agree which endpoints you will call, how you will authenticate and the volumes you expect. Tell us who should join and we will set it up.'
+        ]
+      }]},
+      check:{text:'Book the API endpoints session with their technical team. Capture the endpoints in scope, the auth method and expected volumes.'}
+    },
+    {
+      id:'standard-nodes', label:'Standard nodes', lanes:['email','manual','api'], type:'customer',
+      email:{sections:[{
+        heading:'What your underwriters need to see on the submissions dashboard',
+        body:[
+          'Triage fills in a set of fields on the dashboard so your underwriters can sort, filter and decide what to price without opening a submission. The set we start from is:',
+          '    ' + PH('[PjM to insert the current standard nodes list from the delivery guide]'),
+          'Could you ask your underwriters and actuaries whether that covers what they want to see and filter on, and what is missing?'
+        ]
+      }]},
+      check:{text:'Paste the current standard nodes list from the delivery guide into the email before sending. Get the underwriters and actuaries named for the workshop, and confirm the list covers what they want to see and filter on. Changes need Engineering to deploy, so surface them early.'}
+    },
+    {
+      id:'openai-secrets', label:'Open AI secrets', lanes:['email','manual','api'], type:'internal',
+      email:null,
+      check:{text:'Set up the Open AI secrets for the tenant. Needed for every flow, never asked of the customer.'}
+    },
+    {
+      id:'presigner-bucket', label:'Presigner bucket', lanes:['email','manual','api'], type:'customer',
+      email:{sections:[{
+        heading:'File upload and attachment allowlisting',
+        body:[
+          'To allow files and email attachments to be submitted into the solution, please confirm that your IT team can allowlist your S3 file upload domain:',
+          '    ' + PH('[PjM to insert the customer-specific S3 bucket, the format can be found in the delivery guide]'),
+          'Please note that this needs to be done by domain, IP filtering is not possible for S3.'
+        ]
+      }]},
+      check:{text:'Paste the customer-specific S3 bucket URL into the email before sending, using the format in the delivery guide. Then confirm their IT has allowlisted it.'}
+    },
+    {
+      id:'email-whitelisting', label:'Email whitelisting', lanes:['email'], type:'customer',
+      email:{sections:[
+        {
+          heading:'Sender domain allowlisting',
+          body:[
+            'Please provide the list of email domains that will be used to send submissions or related emails into the solution, for example @example.com and @example.co.uk.',
+            'We will use this list to allowlist expected sender domains on our side, as emails from unknown mailboxes are dropped by default.'
+          ]
+        },
+        {
+          heading:'Email authentication checks',
+          body:[
+            'Please ask your IT team to confirm that the relevant sending domains have the correct email authentication records configured: DKIM, SPF and DMARC.',
+            'Once you have sent us the expected sending domains, our team can help verify these records.'
+          ]
+        }
+      ]},
+      check:{text:'Collect the full list of sender domains. Check DKIM, SPF and DMARC are configured on each one.'}
+    },
+    {
+      id:'email-model-mapping', label:'Email to model mapping', lanes:['email'], type:'internal',
+      email:{note:[
+        'One thing we will handle on our side',
+        'Once we have your email domains, we will map each domain to the model you want those submissions linked to. Nothing needed from you here, we are flagging it so you know where submissions will land.'
+      ]},
+      check:{text:'Once the sender domains are confirmed, map each domain to the model the customer wants those submissions linked to.'}
+    }
+  ];
+
+  /* Everything inside the playfield is positioned as a percentage of its size,
+     so the cabinet can grow with the viewport without the geometry drifting. */
+  var GEO = {
+    barTop:5, barStep:12.6, barH:9.4,  // vertical, percent of playfield
+    coinLift:4,                        // coin centre sits this far above a bar
+    coinStart:-8, coinRest:92,
+    laneLeft:5, laneW:29, laneGap:1.5  // horizontal, percent
+  };
+  var laneLeft = function(i){ return GEO.laneLeft + i*(GEO.laneW + GEO.laneGap); };
+  var laneMid  = function(i){ return laneLeft(i) + GEO.laneW/2; };
+
+  var machine  = document.getElementById('machine');
+  var glass    = machine.querySelector('.glass');
+  var slotsEl  = document.getElementById('slots');
+  var statusEl = document.getElementById('status');
+  var outEmail = document.getElementById('out-email');
+  var outCheck = document.getElementById('out-check');
+
+  var used = {};
+  var collected = [];
+  var busy = false;
+  var activeTab = 'email';
+
+  function addToMachine(el){ machine.insertBefore(el, glass); }
+
+  LANES.forEach(function(lane, i){
+    var el = document.createElement('div');
+    el.className = 'lane';
+    el.dataset.lane = lane.id;
+    el.id = 'lane-' + lane.id;
+    el.style.left = laneLeft(i) + '%';
+    el.style.width = GEO.laneW + '%';
+    addToMachine(el);
+
+    var lbl = document.createElement('div');
+    lbl.className = 'lanelabel';
+    lbl.style.left = laneMid(i) + '%';
+    lbl.textContent = lane.name;
+    addToMachine(lbl);
+
+    if (i > 0){
+      var post = document.createElement('div');
+      post.className = 'post';
+      post.style.left = (laneLeft(i) - GEO.laneGap/2) + '%';
+      addToMachine(post);
+    }
+  });
+
+  var laneIds = LANES.map(function(l){ return l.id; });
+
+  BARS.forEach(function(bar, i){
+    bar.y = GEO.barTop + i*GEO.barStep;
+    var idxs = bar.lanes.map(function(id){ return laneIds.indexOf(id); });
+    var first = Math.min.apply(null, idxs);
+    var last  = Math.max.apply(null, idxs);
+
+    var el = document.createElement('div');
+    el.className = 'bar ' + bar.type;
+    el.id = 'bar-' + bar.id;
+    el.style.top = bar.y + '%';
+    el.style.height = GEO.barH + '%';
+    el.style.left = (laneLeft(first) - 1.5) + '%';
+    el.style.right = (100 - (laneLeft(last) + GEO.laneW + 1.5)) + '%';
+
+    var name = document.createElement('span');
+    name.textContent = bar.label;
+    var who = document.createElement('span');
+    who.className = 'who';
+    var whoText = bar.type === 'internal' ? 'OURS' : 'THEIRS';
+    if (bar.lanes.length === 1){
+      el.classList.add('narrow');
+      el.title = bar.label + ' (' + whoText.toLowerCase() + ')';
+    } else {
+      who.textContent = whoText;
+    }
+    el.appendChild(name);
+    el.appendChild(who);
+    addToMachine(el);
+  });
+
+  var tray = document.createElement('div');
+  tray.className = 'tray';
+  machine.insertBefore(tray, machine.firstChild);
+
+  LANES.forEach(function(lane, i){
+    var b = document.createElement('button');
+    b.className = 'slot';
+    b.type = 'button';
+    b.dataset.lane = lane.id;
+    var mouth = document.createElement('span');
+    mouth.className = 'mouth';
+    var name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = lane.name;
+    var hint = document.createElement('span');
+    hint.className = 'hint';
+    hint.textContent = 'insert coin';
+    b.appendChild(mouth);
+    b.appendChild(name);
+    b.appendChild(hint);
+    b.addEventListener('click', function(){ play(lane, i); });
+    slotsEl.appendChild(b);
+  });
+
+  // A slot closes once its coin has been played, and every slot closes while a
+  // coin is mid-drop so a second click cannot land silently.
+  function refreshSlots(){
+    Array.prototype.forEach.call(slotsEl.querySelectorAll('.slot'), function(s){
+      var spent = !!used[s.dataset.lane];
+      s.disabled = busy || spent;
+      s.querySelector('.hint').textContent = spent ? 'played' : 'insert coin';
+    });
+  }
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function pace(ms){ return reduced ? 40 : ms; }
+
+  function moveCoin(coin, topPct, ms){
+    coin.style.transitionDuration = pace(ms) + 'ms';
+    coin.style.top = topPct + '%';
+    return sleep(pace(ms));
+  }
+
+  function play(lane, i){
+    if (busy || used[lane.id]) return;
+    busy = true;
+    used[lane.id] = true;
+    refreshSlots();
+    document.getElementById('lane-' + lane.id).classList.add('armed');
+    statusEl.textContent = '> dropzone ' + (i + 1) + ' please, Ben';
+
+    var coin = document.createElement('div');
+    coin.className = 'coin falling';
+    coin.style.left = laneMid(i) + '%';
+    coin.style.top = GEO.coinStart + '%';
+    var face = document.createElement('div');
+    face.className = 'coin-face';
+    coin.appendChild(face);
+    addToMachine(coin);
+
+    var hits = BARS.filter(function(b){ return b.lanes.indexOf(lane.id) !== -1; });
+    var chain = sleep(60);
+
+    hits.forEach(function(bar){
+      chain = chain.then(function(){
+        return moveCoin(coin, bar.y - GEO.coinLift, 430);
+      }).then(function(){
+        var el = document.getElementById('bar-' + bar.id);
+        el.classList.add('hit');
+        el.classList.add('collected');
+        coin.classList.add('impact');
+        if (collected.indexOf(bar.id) === -1) collected.push(bar.id);
+        render();
+        return sleep(pace(230));
+      }).then(function(){
+        document.getElementById('bar-' + bar.id).classList.remove('hit');
+        coin.classList.remove('impact');
+        return sleep(pace(80));
+      });
+    });
+
+    chain.then(function(){
+      return moveCoin(coin, GEO.coinRest, 540);
+    }).then(function(){
+      coin.classList.remove('falling');
+      statusEl.textContent = '';
+      busy = false;
+      refreshSlots();
+    });
+  }
+
+  function chosenLanes(){
+    return LANES.filter(function(l){ return used[l.id]; }).map(function(l){ return l.name; });
+  }
+
+  function joinNames(list){
+    if (!list.length) return '';
+    if (list.length === 1) return list[0];
+    return list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+  }
+
+  function hitBars(){
+    return BARS.filter(function(b){ return collected.indexOf(b.id) !== -1; });
+  }
+
+  function renderChips(){
+    var el = document.getElementById('chips');
+    var bars = hitBars();
+    el.textContent = '';
+    if (!bars.length){
+      var s = document.createElement('span');
+      s.className = 'empty';
+      s.textContent = 'Nothing yet. Drop a coin.';
+      el.appendChild(s);
+      return;
+    }
+    bars.forEach(function(b){
+      var c = document.createElement('span');
+      c.className = 'chip ' + b.type;
+      c.textContent = b.label;
+      el.appendChild(c);
+    });
+  }
+
+  function buildEmail(){
+    var flows = chosenLanes();
+    if (!flows.length){
+      return 'Drop a coin into a slot and the customer email will write itself here.';
+    }
+
+    var bars = hitBars();
+    var sections = [];
+    var notes = [];
+    bars.forEach(function(b){
+      if (!b.email) return;
+      if (b.email.sections) sections = sections.concat(b.email.sections);
+      if (b.email.note) notes.push(b.email.note);
+    });
+
+    var plural = flows.length > 1 ? 'flows' : 'flow';
+    var lines = [];
+    lines.push('Subject: Technical setup requirements ahead of hx Triage kickoff');
+    lines.push('');
+    lines.push('Hi [Customer name],');
+    lines.push('');
+    lines.push('Ahead of our kickoff session for Triage, we would like to get a few technical setup items moving so that once the kickoff has happened, we can get started straight away without waiting on access or configuration.');
+    lines.push('');
+    lines.push('You are set up for the ' + joinNames(flows) + ' submission ' + plural + ', so these are the areas where we will need input from your side. Most of it sits with your IT team, and one is a question for your underwriters:');
+    lines.push('');
+
+    sections.forEach(function(sec, i){
+      lines.push((i + 1) + '. ' + sec.heading);
+      sec.body.forEach(function(p){ lines.push(p); });
+      lines.push('');
+    });
+
+    notes.forEach(function(note){
+      lines.push(note[0]);
+      note.slice(1).forEach(function(p){ lines.push(p); });
+      lines.push('');
+    });
+
+    lines.push('Timing');
+    lines.push('Ideally we would like to get these items started before the kickoff. That means we can use the kickoff to align on process and next steps, then move straight into setup and delivery afterwards rather than waiting for technical prerequisites to be completed.');
+    lines.push('');
+    lines.push('Please let us know who the best technical contact is on your side and we can share any additional details they need.');
+    lines.push('');
+    lines.push('Thanks,');
+    lines.push('[Your name]');
+    return lines.join('\n');
+  }
+
+  function buildChecklist(){
+    var flows = chosenLanes();
+    if (!flows.length){
+      return 'Drop a coin into a slot and the PjM checklist will write itself here.';
+    }
+
+    var bars = hitBars();
+    var fromCustomer = bars.filter(function(b){ return b.type === 'customer'; });
+    var ourSide = bars.filter(function(b){ return b.type === 'internal'; });
+
+    var lines = [];
+    lines.push('Triage technical onboarding, PjM tracker');
+    lines.push('Customer: [Customer name]');
+    lines.push('Submission flows: ' + joinNames(flows));
+    lines.push('');
+
+    if (fromCustomer.length){
+      lines.push('To gather from the customer');
+      lines.push('[ ] Technical contact named on the customer side');
+      lines.push('    Get this first. Every item below needs a named person to chase, not a general technical update.');
+      fromCustomer.forEach(function(b){
+        lines.push('[ ] ' + b.label);
+        lines.push('    ' + b.check.text);
+      });
+      lines.push('');
+    }
+
+    if (ourSide.length){
+      lines.push('To set up on our side, no customer action');
+      ourSide.forEach(function(b){
+        lines.push('[ ] ' + b.label);
+        lines.push('    ' + b.check.text);
+      });
+      lines.push('');
+    }
+
+    lines.push('[ ] All of the above closed out before kickoff');
+    return lines.join('\n');
+  }
+
+  // Splits on the marker so placeholder runs land in a red span. Odd-numbered
+  // parts are the placeholders, even-numbered are ordinary text.
+  function renderOut(el, text){
+    el.textContent = '';
+    text.split(MARK).forEach(function(part, i){
+      if (i % 2 === 1){
+        var s = document.createElement('span');
+        s.className = 'ph';
+        s.textContent = part;
+        el.appendChild(s);
+      } else if (part){
+        el.appendChild(document.createTextNode(part));
+      }
+    });
+  }
+
+  function render(){
+    renderChips();
+    renderOut(outEmail, buildEmail());
+    renderOut(outCheck, buildChecklist());
+  }
+
+  function selectTab(which){
+    activeTab = which;
+    var isEmail = which === 'email';
+    document.getElementById('tab-email').setAttribute('aria-selected', String(isEmail));
+    document.getElementById('tab-check').setAttribute('aria-selected', String(!isEmail));
+    outEmail.classList.toggle('hidden', !isEmail);
+    outCheck.classList.toggle('hidden', isEmail);
+    document.getElementById('copyStatus').textContent = '';
+  }
+
+  document.getElementById('tab-email').addEventListener('click', function(){ selectTab('email'); });
+  document.getElementById('tab-check').addEventListener('click', function(){ selectTab('check'); });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    if (busy) return;
+    used = {};
+    collected = [];
+    Array.prototype.forEach.call(machine.querySelectorAll('.coin'), function(c){ c.remove(); });
+    Array.prototype.forEach.call(machine.querySelectorAll('.bar'), function(b){
+      b.classList.remove('collected');
+      b.classList.remove('hit');
+    });
+    Array.prototype.forEach.call(machine.querySelectorAll('.lane'), function(l){ l.classList.remove('armed'); });
+    refreshSlots();
+    statusEl.textContent = '';
+    document.getElementById('copyStatus').textContent = '';
+    render();
+  });
+
+  document.getElementById('copy').addEventListener('click', function(){
+    var ta = activeTab === 'email' ? outEmail : outCheck;
+    var out = document.getElementById('copyStatus');
+    ta.focus();
+    var range = document.createRange();
+    range.selectNodeContents(ta);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    function done(ok){
+      out.textContent = ok ? 'Copied.' : 'Copying is blocked in this frame. The text is selected, press Ctrl+C.';
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.innerText).then(function(){ done(true); }, function(){ done(false); });
+    } else {
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      done(ok);
+    }
+  });
+
+  refreshSlots();
+  render();
+})();
+</script>
+</body>
+</html>
