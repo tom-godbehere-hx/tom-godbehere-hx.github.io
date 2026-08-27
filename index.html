@@ -262,7 +262,7 @@
 
   .coin{
     position:absolute;transform:translate(-50%,-50%);
-    transition:top .42s cubic-bezier(.45,0,.7,1);
+    transition:top .42s cubic-bezier(.45,0,.7,1), left .5s ease;
     z-index:6;
   }
   .coin-face{
@@ -290,35 +290,34 @@
 
   /* ---------- Plinth under the glass ---------- */
   .plinth{
-    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
     margin-top:12px;padding:9px 12px;
     background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.09);border-radius:9px;
   }
   .legend{
-    display:flex;gap:16px;flex-wrap:wrap;
+    display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
     font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-size:11px;color:#aab6c6;
   }
   .legend b{display:inline-block;width:12px;height:12px;border:1.5px solid var(--cab-edge);border-radius:2px;vertical-align:-2px;margin-right:7px}
   .readout{
     font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
-    font-size:11.5px;letter-spacing:.05em;color:#ffd75e;min-height:16px;
+    font-size:11.5px;letter-spacing:.05em;color:#ffd75e;min-height:16px;text-align:center;
   }
-  /* Mounted on the front of the machine, in the empty space under the Manual
-     lane where the two email-only bars do not reach. Always in view, even when
-     an embed crops everything below the cabinet. */
+  /* Mounted in the payout chute, dead centre. Always in view, even when an embed
+     crops everything below the cabinet. Spent coins pile at the left of the
+     chute so they never sit behind it. */
   button.reset{
-    position:absolute;left:50%;top:68%;transform:translateX(-50%);z-index:9;
+    position:absolute;left:50%;top:93%;transform:translate(-50%,-50%);z-index:9;
     font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;
-    font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+    font-size:10.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
     color:#e6ecf4;white-space:nowrap;cursor:pointer;
-    padding:9px 15px;border-radius:8px;border:2px solid var(--cab-edge);
+    padding:8px 14px;border-radius:7px;border:2px solid var(--cab-edge);
     background:linear-gradient(180deg,#5b6779,#2b3441);
     box-shadow:0 3px 0 var(--cab-edge),0 7px 13px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.28);
-    transition:transform .1s ease,box-shadow .1s ease;
+    transition:background .12s ease,box-shadow .1s ease;
   }
   button.reset:hover{background:linear-gradient(180deg,#6b7889,#333d4c)}
   button.reset:active{
-    transform:translateX(-50%) translateY(3px);
     box-shadow:0 0 0 var(--cab-edge),0 3px 7px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.2);
   }
   button.reset:focus-visible{outline:3px solid #fff;outline-offset:3px}
@@ -530,7 +529,7 @@
   var GEO = {
     barTop:5, barStep:12.6, barH:9.4,  // vertical, percent of playfield
     coinLift:4,                        // coin centre sits this far above a bar
-    coinStart:-8, coinRest:92,
+    coinStart:-8, coinRest:93, pileLeft:7, pileStep:6,
     laneLeft:5, laneW:29, laneGap:1.5  // horizontal, percent
   };
   var laneLeft = function(i){ return GEO.laneLeft + i*(GEO.laneW + GEO.laneGap); };
@@ -546,6 +545,7 @@
   var used = {};
   var collected = [];
   var busy = false;
+  var landed = 0;
   var activeTab = 'email';
 
   function addToMachine(el){ machine.insertBefore(el, glass); }
@@ -689,6 +689,9 @@
     });
 
     chain.then(function(){
+      // Coins roll to the left end of the chute so the reset button stays clear.
+      coin.style.left = (GEO.pileLeft + landed * GEO.pileStep) + '%';
+      landed += 1;
       return moveCoin(coin, GEO.coinRest, 540);
     }).then(function(){
       coin.classList.remove('falling');
@@ -858,6 +861,7 @@
     if (busy) return;
     used = {};
     collected = [];
+    landed = 0;
     Array.prototype.forEach.call(machine.querySelectorAll('.coin'), function(c){ c.remove(); });
     Array.prototype.forEach.call(machine.querySelectorAll('.bar'), function(b){
       b.classList.remove('collected');
